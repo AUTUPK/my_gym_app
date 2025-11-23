@@ -3,83 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>我的健身打卡</title>
-    <link rel="manifest" href="manifest.json">
+    <title>四分化训练</title>
     
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="健身打卡">
-    
     <meta name="theme-color" content="#f5f5f7">
+
     <style>
-        /* === 简单的样式设计 (CSS) === */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f5f5f7;
             color: #333;
             margin: 0;
             padding: 20px;
+            padding-top: 40px; /* 给状态栏留出空间 */
             display: flex;
             flex-direction: column;
             align-items: center;
+            -webkit-tap-highlight-color: transparent;
         }
-        h1 { font-size: 1.5rem; margin-bottom: 5px; }
-        h2 { font-size: 1rem; color: #666; font-weight: normal; margin-bottom: 20px; }
+        h1 { font-size: 1.6rem; margin-bottom: 5px; color: #1c1c1e; }
+        h2 { font-size: 1rem; color: #8e8e93; font-weight: normal; margin-bottom: 24px; }
         
         .card {
             background: white;
             width: 100%;
-            max-width: 400px;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            padding: 20px;
+            max-width: 450px; /* 稍微加宽以容纳长文本 */
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+            padding: 10px 20px;
             box-sizing: border-box;
         }
 
         .workout-item {
             display: flex;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #eee;
+            align-items: flex-start; /* 顶部对齐 */
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
         }
         .workout-item:last-child { border-bottom: none; }
 
-        /* 自定义复选框样式 */
+        /* 复选框样式 */
         .checkbox {
-            width: 24px;
+            min-width: 24px;
             height: 24px;
             border: 2px solid #007aff;
             border-radius: 50%;
-            margin-right: 15px;
+            margin-right: 16px;
+            margin-top: 2px; /* 对齐首行文字 */
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
         }
         
+        /* 文本区域样式 */
+        .text-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .action-name {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .action-note {
+            font-size: 0.85rem;
+            color: #8e8e93;
+            line-height: 1.4;
+        }
+
+        /* 完成状态 */
         .workout-item.completed .checkbox {
             background-color: #007aff;
             color: white;
+            border-color: #007aff;
         }
-        .workout-item.completed span {
+        .workout-item.completed .action-name {
             text-decoration: line-through;
-            color: #aaa;
+            color: #c7c7cc;
+        }
+        .workout-item.completed .action-note {
+            color: #d1d1d6;
         }
         
-        /* 状态栏 */
         .status-bar {
-            margin-top: 20px;
+            margin-top: 25px;
             font-size: 0.9rem;
-            color: #888;
+            color: #8e8e93;
             text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <h1 id="day-title">Loading...</h1>
-    <h2 id="date-display">Loading...</h2>
+    <h1 id="day-title">加载中...</h1>
+    <h2 id="date-display">...</h2>
 
     <div class="card" id="list-container">
         </div>
@@ -89,81 +110,133 @@
     </div>
 
     <script>
-        // === 核心逻辑 (JavaScript) ===
-
-        // 1. 定义你的训练计划 (0代表周日, 1代表周一, 以此类推)
-        // 你可以随意修改这里的文字
+        // === 核心数据: 你的四分化训练计划 ===
+        // 格式: "动作名称 | 组数x次数 <br> <span class='note'>要点提示</span>"
+        
         const weeklyPlan = {
-            1: ["杠铃卧推 4x10", "上斜哑铃卧推 4x12", "蝴蝶机夹胸 4x15", "三头肌下压 4x12"], // 周一
-            2: ["引体向上 4x力竭", "高位下拉 4x12", "坐姿划船 4x12", "二头肌弯举 4x12"],     // 周二
-            3: ["休息日 (做点有氧?)"],                                                 // 周三
-            4: ["深蹲 5x5", "腿举 4x12", "腿屈伸 4x15", "直腿硬拉 4x12"],                 // 周四
-            5: ["推举 4x10", "侧平举 6x15", "面拉 4x15"],                               // 周五
-            6: ["休息日", "吃顿好的"],                                                  // 周六
-            0: ["休息日", "准备下周计划"]                                               // 周日
+            [cite_start]// 周一: 胸部 + 肩部(侧/前) [cite: 2]
+            1: [
+                "平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心，无需顶峰挤压</span>",
+                "坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>左手次数为准，肩胛骨不锁死，随手臂活动</span>",
+                "双杠臂屈伸(胸肌版) | 3组x力竭 <br> <span class='note'>身体大幅前倾含胸，肘部微张</span>",
+                "器械夹胸 | 4组x12次 <br> <span class='note'>练挤压感，顶峰停顿1秒</span>",
+                "哑铃侧平举 | 5-6组x15-20次 <br> <span class='note'>侧肩是宽度的关键</span>"
+            ],
+
+            [cite_start]// 周二: 休息日 [cite: 56]
+            2: [
+                "休息日 (Active Recovery) <br> <span class='note'>可做轻松慢跑或椭圆机促进恢复</span>"
+            ],
+
+            [cite_start]// 周三: 背部 + 肩部(后) + 腹肌 [cite: 15]
+            3: [
+                "硬拉 | 80% 1组x6次 <br> <span class='note'>力量基石，做完一组高质量即可</span>",
+                "高位下拉 | 4组x12次",
+                "坐姿器械划船 | 4组x12次",
+                "直臂下压 | 4组x15-20次",
+                "绳索面拉 | 4组x15-20次 <br> <span class='note'>手肘比肩高，拉向额头，不要耸肩</span>",
+                "悬垂举腿/反向卷腹 | 3组x力竭 <br> <span class='note'>针对下腹部，核心激活状态下做</span>"
+            ],
+
+            [cite_start]// 周四: 休息日 [cite: 56]
+            4: [
+                "休息日 <br> <span class='note'>多吃蛋白质，好好睡觉</span>"
+            ],
+
+            [cite_start]// 周五: 手臂 + 腹肌 + 有氧 [cite: 27]
+            5: [
+                "EZ杆碎颅者 | 3组x12次",
+                "EZ杆弯举 | 3组x12次",
+                "颈后臂屈伸 | 3组x12次",
+                "牧师凳弯举 | 3组x12次",
+                "绳索下压 | 3组x12次",
+                "上斜哑铃弯举 | 3组x12次",
+                "绳索伐木/俄罗斯转体 | 3组x15-20次 <br> <span class='note'>针对腹外斜肌</span>",
+                "有氧训练 | 20-30分钟 <br> <span class='note'>中等强度恒速(如坡度快走)</span>"
+            ],
+
+            // 周六: 休息日 (根据四分化逻辑安排休息)
+            6: [
+                "休息日 <br> <span class='note'>准备明天的练腿日</span>"
+            ],
+
+            [cite_start]// 周日: 腿部 [cite: 38]
+            0: [
+                "深蹲 | 80% 3组x6次 <br> <span class='note'>绝对力量训练</span>",
+                "哑铃原地后撤步蹲 | 3组x10-12次 <br> <span class='note'>向后撤步，对膝盖友好</span>",
+                "哑铃罗马尼亚硬拉 | 4组x10-12次 <br> <span class='note'>微屈膝锁死，屁股后撅，感受大腿后侧拉伸</span>",
+                "腿屈伸 | 4组x15-20次",
+                "腿弯举 | 4组x12-20次",
+                "坐姿外展 | 2组x15-20次 <br> <span class='note'>身体前倾(趴着做)，孤立臀中肌</span>"
+            ]
         };
 
         const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-
-        // 获取今天日期信息
         const now = new Date();
-        const dayOfWeek = now.getDay(); // 0-6
-        const dateStr = now.toISOString().split('T')[0]; // 格式: 2023-10-27 (作为存储的Key)
+        const dayOfWeek = now.getDay(); 
+        const dateStr = now.toISOString().split('T')[0]; 
 
-        // 初始化页面
-        document.getElementById('day-title').innerText = `今天是 ${dayNames[dayOfWeek]}`;
+        // 渲染页面
+        document.getElementById('day-title').innerText = dayNames[dayOfWeek] + "计划";
         document.getElementById('date-display').innerText = dateStr;
         
         const listContainer = document.getElementById('list-container');
         const todayPlan = weeklyPlan[dayOfWeek] || ["暂无计划"];
 
-        // 2. 渲染列表
-        todayPlan.forEach((exercise, index) => {
+        todayPlan.forEach((content, index) => {
+            // 解析内容：将 "动作 <br> 说明" 分离，以便做样式处理
+            let title = content;
+            let note = "";
+            
+            if (content.includes("<br>")) {
+                const parts = content.split("<br>");
+                title = parts[0];
+                note = parts[1];
+            }
+
             const div = document.createElement('div');
             div.className = 'workout-item';
             
-            // 生成唯一的存储ID: "日期-索引" (例如: 2023-10-27-0)
-            // 这样每天的记录都是新的，不会覆盖昨天的，也不会显示昨天的勾选
             const storageKey = `workout_${dateStr}_${index}`;
             const isDone = localStorage.getItem(storageKey) === 'true';
-
             if (isDone) div.classList.add('completed');
 
             div.innerHTML = `
                 <div class="checkbox">${isDone ? '✔' : ''}</div>
-                <span>${exercise}</span>
+                <div class="text-content">
+                    <span class="action-name">${title}</span>
+                    ${note ? `<span class="action-note">${note}</span>` : ''}
+                </div>
             `;
 
-            // 3. 点击事件：切换状态并保存到本地
             div.onclick = () => {
                 const currentlyDone = div.classList.contains('completed');
-                
                 if (currentlyDone) {
                     div.classList.remove('completed');
                     div.querySelector('.checkbox').innerText = '';
-                    localStorage.removeItem(storageKey); // 移除记录
+                    localStorage.removeItem(storageKey);
                 } else {
                     div.classList.add('completed');
                     div.querySelector('.checkbox').innerText = '✔';
-                    localStorage.setItem(storageKey, 'true'); // 保存记录
+                    localStorage.setItem(storageKey, 'true');
                 }
                 updateProgress();
             };
-
             listContainer.appendChild(div);
         });
 
-        // 更新进度文字
         function updateProgress() {
             const total = document.querySelectorAll('.workout-item').length;
             const done = document.querySelectorAll('.workout-item.completed').length;
-            if(total === 0) return;
+            // 如果是休息日（项目少于2个），就不显示进度条了，看着心烦
+            if(total <= 2) {
+                document.getElementById('progress-text').innerText = "今日休息 / 主动恢复";
+                return;
+            }
             const percent = Math.round((done / total) * 100);
-            document.getElementById('progress-text').innerText = `今日进度: ${done}/${total} (${percent}%)`;
+            document.getElementById('progress-text').innerText = `完成度: ${done}/${total} (${percent}%)`;
         }
-
         updateProgress();
-
     </script>
 </body>
 </html>
