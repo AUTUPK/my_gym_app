@@ -17,7 +17,7 @@
             color: #333;
             margin: 0;
             padding: 20px;
-            padding-top: 40px; /* 给状态栏留出空间 */
+            padding-top: 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -29,7 +29,7 @@
         .card {
             background: white;
             width: 100%;
-            max-width: 450px; /* 稍微加宽以容纳长文本 */
+            max-width: 450px;
             border-radius: 18px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.04);
             padding: 10px 20px;
@@ -38,28 +38,26 @@
 
         .workout-item {
             display: flex;
-            align-items: flex-start; /* 顶部对齐 */
+            align-items: flex-start;
             padding: 16px 0;
             border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
         }
         .workout-item:last-child { border-bottom: none; }
 
-        /* 复选框样式 */
         .checkbox {
             min-width: 24px;
             height: 24px;
             border: 2px solid #007aff;
             border-radius: 50%;
             margin-right: 16px;
-            margin-top: 2px; /* 对齐首行文字 */
+            margin-top: 2px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
         }
         
-        /* 文本区域样式 */
         .text-content {
             display: flex;
             flex-direction: column;
@@ -75,7 +73,6 @@
             line-height: 1.4;
         }
 
-        /* 完成状态 */
         .workout-item.completed .checkbox {
             background-color: #007aff;
             color: white;
@@ -103,71 +100,77 @@
     <h2 id="date-display">...</h2>
 
     <div class="card" id="list-container">
-        </div>
+    </div>
 
     <div class="status-bar" id="progress-text">
         今日进度: 0%
     </div>
 
     <script>
+    // 增加一个错误捕捉器，如果有问题会弹窗提示
+    window.onerror = function(message, source, lineno, colno, error) {
+        alert("程序出错了: " + message);
+    };
+
+    try {
         // === 核心数据: 你的四分化训练计划 ===
-        // 格式: "动作名称 | 组数x次数 <br> <span class='note'>要点提示</span>"
+        // 使用反引号 (`) 包裹字符串，防止换行导致报错
         
         const weeklyPlan = {
-            [cite_start]// 周一: 胸部 + 肩部(侧/前) [cite: 2]
+            // 周一: 胸部 + 肩部(侧/前)
             1: [
-                "平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心，无需顶峰挤压</span>",
-                "坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>左手次数为准，肩胛骨不锁死，随手臂活动</span>",
-                "双杠臂屈伸(胸肌版) | 3组x力竭 <br> <span class='note'>身体大幅前倾含胸，肘部微张</span>",
-                "器械夹胸 | 4组x12次 <br> <span class='note'>练挤压感，顶峰停顿1秒</span>",
-                "哑铃侧平举 | 5-6组x15-20次 <br> <span class='note'>侧肩是宽度的关键</span>"
+                `平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心，无需顶峰挤压</span>`,
+                `坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>左手次数为准，肩胛骨不锁死，随手臂活动</span>`,
+                `双杠臂屈伸(胸肌版) | 3组x力竭 <br> <span class='note'>身体大幅前倾含胸，肘部微张</span>`,
+                `器械夹胸 | 4组x12次 <br> <span class='note'>练挤压感，顶峰停顿1秒</span>`,
+                `哑铃侧平举 | 5-6组x15-20次 <br> <span class='note'>侧肩是宽度的关键</span>`
             ],
 
-            [cite_start]// 周二: 休息日 [cite: 56]
+            // 周二: 休息日
             2: [
-                "休息日 (Active Recovery) <br> <span class='note'>可做轻松慢跑或椭圆机促进恢复</span>"
+                `休息日 (Active Recovery) <br> <span class='note'>可做轻松慢跑或椭圆机促进恢复</span>`
             ],
 
-            [cite_start]// 周三: 背部 + 肩部(后) + 腹肌 [cite: 15]
+            // 周三: 背部 + 肩部(后) + 腹肌
             3: [
-                "硬拉 | 80% 1组x6次 <br> <span class='note'>力量基石，做完一组高质量即可</span>",
-                "高位下拉 | 4组x12次",
-                "坐姿器械划船 | 4组x12次",
-                "直臂下压 | 4组x15-20次",
-                "绳索面拉 | 4组x15-20次 <br> <span class='note'>手肘比肩高，拉向额头，不要耸肩</span>",
-                "悬垂举腿/反向卷腹 | 3组x力竭 <br> <span class='note'>针对下腹部，核心激活状态下做</span>"
+                `硬拉 | 80% 1组x6次 <br> <span class='note'>力量基石，做完一组高质量即可</span>`,
+                `高位下拉 | 4组x12次`,
+                `坐姿器械划船 | 4组x12次`,
+                `直臂下压 | 4组x15-20次`,
+                `绳索面拉 | 4组x15-20次 <br> <span class='note'>手肘比肩高，拉向额头，不要耸肩</span>`,
+                `悬垂举腿/反向卷腹 | 3组x力竭 <br> <span class='note'>针对下腹部，核心激活状态下做</span>`
             ],
 
-            [cite_start]// 周四: 休息日 [cite: 56]
+            // 周四: 休息日
             4: [
-                "休息日 <br> <span class='note'>多吃蛋白质，好好睡觉</span>"
+                `休息日 <br> <span class='note'>多吃蛋白质，好好睡觉</span>`
             ],
 
-            [cite_start]// 周五: 手臂 + 腹肌 + 有氧 [cite: 27]
+            // 周五: 手臂 + 腹肌 + 有氧
             5: [
-                "EZ杆碎颅者 | 3组x12次",
-                "EZ杆弯举 | 3组x12次",
-                "颈后臂屈伸 | 3组x12次",
-                "牧师凳弯举 | 3组x12次",
-                "绳索下压 | 3组x12次",
-                "上斜哑铃弯举 | 3组x12次",
-                "绳索伐木/俄罗斯转体 | 3组x15-20次 <br> <span class='note'>针对腹外斜肌</span>",
-                "有氧训练 | 20-30分钟 <br> <span class='note'>中等强度恒速(如坡度快走)</span>"
+                `EZ杆碎颅者 | 3组x12次`,
+                `EZ杆弯举 | 3组x12次`,
+                `颈后臂屈伸 | 3组x12次`,
+                `牧师凳弯举 | 3组x12次`,
+                `绳索下压 | 3组x12次`,
+                `上斜哑铃弯举 | 3组x12次`,
+                `绳索伐木/俄罗斯转体 | 3组x15-20次 <br> <span class='note'>针对腹外斜肌</span>`,
+                `有氧训练 | 20-30分钟 <br> <span class='note'>中等强度恒速(如坡度快走)</span>`
             ],
 
-            // 周六: 休息日 (根据四分化逻辑安排休息)
+            // 周六: 休息日
             6: [
-                "休息日 <br> <span class='note'>准备明天的练腿日</span>"
+                `休息日 <br> <span class='note'>准备明天的练腿日</span>`
             ],
 
-            [cite_start]// 周日: 腿部 [cite: 38]
+            // 周日: 腿部
             0: [
-                "深蹲 | 80% 3组x6次 <br> <span class='note'>绝对力量训练</span>",
-                "哑铃原地后撤步蹲 | 3组x10-12次 <br> <span class='note'>向后撤步，对膝盖友好</span>",
-                "哑铃罗马尼亚硬拉 | 4组x10-12次 <br> <span class='note'>微屈膝锁死，屁股后撅，感受大腿后侧拉伸</span>",
-                "腿屈伸 | 4组x15-20次",
-                "腿弯举 | 4组x12-20次",
-                "坐姿外展 | 2组x15-20次 <br> <span class='note'>身体前倾(趴着做)，孤立臀中肌</span>"
+                `深蹲 | 80% 3组x6次 <br> <span class='note'>绝对力量训练</span>`,
+                `哑铃原地后撤步蹲 | 3组x10-12次 <br> <span class='note'>向后撤步，对膝盖友好</span>`,
+                `哑铃罗马尼亚硬拉 | 4组x10-12次 <br> <span class='note'>微屈膝锁死，屁股后撅，感受大腿后侧拉伸</span>`,
+                `腿屈伸 | 4组x15-20次`,
+                `腿弯举 | 4组x12-20次`,
+                `坐姿外展 | 2组x15-20次 <br> <span class='note'>身体前倾(趴着做)，孤立臀中肌</span>`
             ]
         };
 
@@ -181,10 +184,10 @@
         document.getElementById('date-display').innerText = dateStr;
         
         const listContainer = document.getElementById('list-container');
-        const todayPlan = weeklyPlan[dayOfWeek] || ["暂无计划"];
+        const todayPlan = weeklyPlan[dayOfWeek] || [`今天没有安排，自由活动！`];
 
         todayPlan.forEach((content, index) => {
-            // 解析内容：将 "动作 <br> 说明" 分离，以便做样式处理
+            // 解析内容
             let title = content;
             let note = "";
             
@@ -198,7 +201,13 @@
             div.className = 'workout-item';
             
             const storageKey = `workout_${dateStr}_${index}`;
-            const isDone = localStorage.getItem(storageKey) === 'true';
+            let isDone = false;
+            try {
+                isDone = localStorage.getItem(storageKey) === 'true';
+            } catch(e) {
+                console.log("Local storage not supported");
+            }
+            
             if (isDone) div.classList.add('completed');
 
             div.innerHTML = `
@@ -214,11 +223,11 @@
                 if (currentlyDone) {
                     div.classList.remove('completed');
                     div.querySelector('.checkbox').innerText = '';
-                    localStorage.removeItem(storageKey);
+                    try { localStorage.removeItem(storageKey); } catch(e){}
                 } else {
                     div.classList.add('completed');
                     div.querySelector('.checkbox').innerText = '✔';
-                    localStorage.setItem(storageKey, 'true');
+                    try { localStorage.setItem(storageKey, 'true'); } catch(e){}
                 }
                 updateProgress();
             };
@@ -228,7 +237,6 @@
         function updateProgress() {
             const total = document.querySelectorAll('.workout-item').length;
             const done = document.querySelectorAll('.workout-item.completed').length;
-            // 如果是休息日（项目少于2个），就不显示进度条了，看着心烦
             if(total <= 2) {
                 document.getElementById('progress-text').innerText = "今日休息 / 主动恢复";
                 return;
@@ -236,7 +244,12 @@
             const percent = Math.round((done / total) * 100);
             document.getElementById('progress-text').innerText = `完成度: ${done}/${total} (${percent}%)`;
         }
+        
         updateProgress();
+        
+    } catch (err) {
+        alert("严重错误: " + err.message);
+    }
     </script>
 </body>
 </html>
