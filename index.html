@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的健身打卡</title>
+    <style>
+        /* === 简单的样式设计 (CSS) === */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f7;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        h2 { font-size: 1rem; color: #666; font-weight: normal; margin-bottom: 20px; }
+        
+        .card {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .workout-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .workout-item:last-child { border-bottom: none; }
+
+        /* 自定义复选框样式 */
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #007aff;
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .workout-item.completed .checkbox {
+            background-color: #007aff;
+            color: white;
+        }
+        .workout-item.completed span {
+            text-decoration: line-through;
+            color: #aaa;
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="day-title">Loading...</h1>
+    <h2 id="date-display">Loading...</h2>
+
+    <div class="card" id="list-container">
+        </div>
+
+    <div class="status-bar" id="progress-text">
+        今日进度: 0%
+    </div>
+
+    <script>
+        // === 核心逻辑 (JavaScript) ===
+
+        // 1. 定义你的训练计划 (0代表周日, 1代表周一, 以此类推)
+        // 你可以随意修改这里的文字
+        const weeklyPlan = {
+            1: ["杠铃卧推 4x10", "上斜哑铃卧推 4x12", "蝴蝶机夹胸 4x15", "三头肌下压 4x12"], // 周一
+            2: ["引体向上 4x力竭", "高位下拉 4x12", "坐姿划船 4x12", "二头肌弯举 4x12"],     // 周二
+            3: ["休息日 (做点有氧?)"],                                                 // 周三
+            4: ["深蹲 5x5", "腿举 4x12", "腿屈伸 4x15", "直腿硬拉 4x12"],                 // 周四
+            5: ["推举 4x10", "侧平举 6x15", "面拉 4x15"],                               // 周五
+            6: ["休息日", "吃顿好的"],                                                  // 周六
+            0: ["休息日", "准备下周计划"]                                               // 周日
+        };
+
+        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+        // 获取今天日期信息
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0-6
+        const dateStr = now.toISOString().split('T')[0]; // 格式: 2023-10-27 (作为存储的Key)
+
+        // 初始化页面
+        document.getElementById('day-title').innerText = `今天是 ${dayNames[dayOfWeek]}`;
+        document.getElementById('date-display').innerText = dateStr;
+        
+        const listContainer = document.getElementById('list-container');
+        const todayPlan = weeklyPlan[dayOfWeek] || ["暂无计划"];
+
+        // 2. 渲染列表
+        todayPlan.forEach((exercise, index) => {
+            const div = document.createElement('div');
+            div.className = 'workout-item';
+            
+            // 生成唯一的存储ID: "日期-索引" (例如: 2023-10-27-0)
+            // 这样每天的记录都是新的，不会覆盖昨天的，也不会显示昨天的勾选
+            const storageKey = `workout_${dateStr}_${index}`;
+            const isDone = localStorage.getItem(storageKey) === 'true';
+
+            if (isDone) div.classList.add('completed');
+
+            div.innerHTML = `
+                <div class="checkbox">${isDone ? '✔' : ''}</div>
+                <span>${exercise}</span>
+            `;
+
+            // 3. 点击事件：切换状态并保存到本地
+            div.onclick = () => {
+                const currentlyDone = div.classList.contains('completed');
+                
+                if (currentlyDone) {
+                    div.classList.remove('completed');
+                    div.querySelector('.checkbox').innerText = '';
+                    localStorage.removeItem(storageKey); // 移除记录
+                } else {
+                    div.classList.add('completed');
+                    div.querySelector('.checkbox').innerText = '✔';
+                    localStorage.setItem(storageKey, 'true'); // 保存记录
+                }
+                updateProgress();
+            };
+
+            listContainer.appendChild(div);
+        });
+
+        // 更新进度文字
+        function updateProgress() {
+            const total = document.querySelectorAll('.workout-item').length;
+            const done = document.querySelectorAll('.workout-item.completed').length;
+            if(total === 0) return;
+            const percent = Math.round((done / total) * 100);
+            document.getElementById('progress-text').innerText = `今日进度: ${done}/${total} (${percent}%)`;
+        }
+
+        updateProgress();
+
+    </script>
+</body>
+</html>
