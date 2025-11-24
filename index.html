@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>四分化训练</title>
-    
+    <title>智能健身计划</title>
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,16 +33,25 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.04);
             padding: 10px 20px;
             box-sizing: border-box;
+            margin-bottom: 20px;
         }
 
         .workout-item {
             display: flex;
+            flex-wrap: wrap; /* 允许折行，为了放重量输入框 */
             align-items: flex-start;
             padding: 16px 0;
             border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
         }
         .workout-item:last-child { border-bottom: none; }
+
+        /* 上半部分：复选框和文字 */
+        .item-header {
+            display: flex;
+            width: 100%;
+            align-items: flex-start;
+            cursor: pointer;
+        }
 
         .checkbox {
             min-width: 24px;
@@ -55,42 +63,89 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+            transition: all 0.2s;
         }
         
-        .text-content {
+        .text-content { display: flex; flex-direction: column; flex: 1; }
+        .action-name { font-size: 1rem; font-weight: 500; margin-bottom: 4px; }
+        .action-note { font-size: 0.85rem; color: #8e8e93; line-height: 1.4; }
+
+        /* 完成状态样式 */
+        .workout-item.completed .checkbox { background-color: #007aff; color: white; }
+        .workout-item.completed .action-name { text-decoration: line-through; color: #c7c7cc; }
+        
+        /* 下半部分：重量输入区 */
+        .weight-input-area {
+            width: 100%;
+            margin-top: 10px;
+            padding-left: 44px; /* 对齐文字 */
             display: flex;
-            flex-direction: column;
+            align-items: center;
         }
-        .action-name {
-            font-size: 1rem;
-            font-weight: 500;
-            margin-bottom: 4px;
+        
+        .weight-input {
+            background: #f2f2f7;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            width: 80px;
+            font-size: 0.9rem;
+            color: #333;
+            text-align: center;
+            outline: none;
         }
-        .action-note {
+        .weight-label {
             font-size: 0.85rem;
             color: #8e8e93;
-            line-height: 1.4;
+            margin-left: 8px;
         }
 
-        .workout-item.completed .checkbox {
-            background-color: #007aff;
+        /* 底部操作区 */
+        .btn {
+            background: #007aff;
             color: white;
-            border-color: #007aff;
-        }
-        .workout-item.completed .action-name {
-            text-decoration: line-through;
-            color: #c7c7cc;
-        }
-        .workout-item.completed .action-note {
-            color: #d1d1d6;
-        }
-        
-        .status-bar {
-            margin-top: 25px;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
             font-size: 0.9rem;
-            color: #8e8e93;
-            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .btn-outline {
+            background: transparent;
+            color: #007aff;
+            border: 1px solid #007aff;
+        }
+
+        /* 编辑框 */
+        #edit-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+        #json-editor {
+            flex: 1;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+        }
+        .editor-hint {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -99,156 +154,185 @@
     <h1 id="day-title">加载中...</h1>
     <h2 id="date-display">...</h2>
 
-    <div class="card" id="list-container">
-    </div>
+    <div class="card" id="list-container"></div>
 
-    <div class="status-bar" id="progress-text">
-        今日进度: 0%
+    <div class="status-bar" id="progress-text">今日进度: 0%</div>
+
+    <button class="btn btn-outline" onclick="openEditor()">⚙️ 修改我的训练计划</button>
+
+    <div id="edit-modal">
+        <h3>编辑计划 (JSON模式)</h3>
+        <div class="editor-hint">
+            <strong>怎么修改？</strong><br>
+            这是你计划的源代码。找到对应的数字(1=周一)，修改方括号 [] 里的内容。<br>
+            格式必须保持：<code>"动作名称 | 组数x次数 <br> <span class='note'>要点</span>"</code>
+        </div>
+        <textarea id="json-editor"></textarea>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" onclick="savePlan()">保存并生效</button>
+            <button class="btn btn-outline" onclick="closeEditor()">取消</button>
+        </div>
     </div>
 
     <script>
-    // 增加一个错误捕捉器，如果有问题会弹窗提示
-    window.onerror = function(message, source, lineno, colno, error) {
-        alert("程序出错了: " + message);
+    // 1. 默认计划 (如果本地没有存储，就用这个)
+    // 使用反引号避免换行报错
+    const defaultPlan = {
+        1: [
+            `平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心</span>`,
+            `坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>左手次数为准</span>`,
+            `双杠臂屈伸 | 3组x力竭 <br> <span class='note'>身体前倾</span>`
+        ],
+        2: [`休息日`],
+        3: [
+            `硬拉 | 80% 1组x6次`, 
+            `高位下拉 | 4组x12次`,
+            `绳索面拉 | 4组x15-20次 <br> <span class='note'>拉向额头</span>`
+        ],
+        4: [`休息日`],
+        5: [
+            `EZ杆碎颅者 | 3组x12次`, 
+            `EZ杆弯举 | 3组x12次`,
+            `有氧训练 | 20-30分钟`
+        ],
+        6: [`休息日`],
+        0: [
+            `深蹲 | 80% 3组x6次`, 
+            `罗马尼亚硬拉 | 4组x10-12次`,
+            `腿屈伸 | 4组x15-20次`
+        ]
     };
 
-    try {
-        // === 核心数据: 你的四分化训练计划 ===
-        // 使用反引号 (`) 包裹字符串，防止换行导致报错
-        
-        const weeklyPlan = {
-            // 周一: 胸部 + 肩部(侧/前)
-            1: [
-                `平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心，无需顶峰挤压</span>`,
-                `坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>左手次数为准，肩胛骨不锁死，随手臂活动</span>`,
-                `双杠臂屈伸(胸肌版) | 3组x力竭 <br> <span class='note'>身体大幅前倾含胸，肘部微张</span>`,
-                `器械夹胸 | 4组x12次 <br> <span class='note'>练挤压感，顶峰停顿1秒</span>`,
-                `哑铃侧平举 | 5-6组x15-20次 <br> <span class='note'>侧肩是宽度的关键</span>`
-            ],
+    // 2. 初始化：尝试从 LocalStorage 读取计划，没有则用默认的
+    let weeklyPlan = defaultPlan;
+    const storedPlan = localStorage.getItem('my_custom_plan');
+    if (storedPlan) {
+        try {
+            weeklyPlan = JSON.parse(storedPlan);
+        } catch(e) {
+            console.error("计划解析失败，重置为默认");
+        }
+    }
 
-            // 周二: 休息日
-            2: [
-                `休息日 (Active Recovery) <br> <span class='note'>可做轻松慢跑或椭圆机促进恢复</span>`
-            ],
+    const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    const now = new Date();
+    const dayOfWeek = now.getDay(); 
+    const dateStr = now.toISOString().split('T')[0]; 
 
-            // 周三: 背部 + 肩部(后) + 腹肌
-            3: [
-                `硬拉 | 80% 1组x6次 <br> <span class='note'>力量基石，做完一组高质量即可</span>`,
-                `高位下拉 | 4组x12次`,
-                `坐姿器械划船 | 4组x12次`,
-                `直臂下压 | 4组x15-20次`,
-                `绳索面拉 | 4组x15-20次 <br> <span class='note'>手肘比肩高，拉向额头，不要耸肩</span>`,
-                `悬垂举腿/反向卷腹 | 3组x力竭 <br> <span class='note'>针对下腹部，核心激活状态下做</span>`
-            ],
+    // 渲染页面
+    document.getElementById('day-title').innerText = dayNames[dayOfWeek];
+    document.getElementById('date-display').innerText = dateStr;
+    renderList();
 
-            // 周四: 休息日
-            4: [
-                `休息日 <br> <span class='note'>多吃蛋白质，好好睡觉</span>`
-            ],
-
-            // 周五: 手臂 + 腹肌 + 有氧
-            5: [
-                `EZ杆碎颅者 | 3组x12次`,
-                `EZ杆弯举 | 3组x12次`,
-                `颈后臂屈伸 | 3组x12次`,
-                `牧师凳弯举 | 3组x12次`,
-                `绳索下压 | 3组x12次`,
-                `上斜哑铃弯举 | 3组x12次`,
-                `绳索伐木/俄罗斯转体 | 3组x15-20次 <br> <span class='note'>针对腹外斜肌</span>`,
-                `有氧训练 | 20-30分钟 <br> <span class='note'>中等强度恒速(如坡度快走)</span>`
-            ],
-
-            // 周六: 休息日
-            6: [
-                `休息日 <br> <span class='note'>准备明天的练腿日</span>`
-            ],
-
-            // 周日: 腿部
-            0: [
-                `深蹲 | 80% 3组x6次 <br> <span class='note'>绝对力量训练</span>`,
-                `哑铃原地后撤步蹲 | 3组x10-12次 <br> <span class='note'>向后撤步，对膝盖友好</span>`,
-                `哑铃罗马尼亚硬拉 | 4组x10-12次 <br> <span class='note'>微屈膝锁死，屁股后撅，感受大腿后侧拉伸</span>`,
-                `腿屈伸 | 4组x15-20次`,
-                `腿弯举 | 4组x12-20次`,
-                `坐姿外展 | 2组x15-20次 <br> <span class='note'>身体前倾(趴着做)，孤立臀中肌</span>`
-            ]
-        };
-
-        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-        const now = new Date();
-        const dayOfWeek = now.getDay(); 
-        const dateStr = now.toISOString().split('T')[0]; 
-
-        // 渲染页面
-        document.getElementById('day-title').innerText = dayNames[dayOfWeek] + "计划";
-        document.getElementById('date-display').innerText = dateStr;
-        
+    // === 核心渲染函数 ===
+    function renderList() {
         const listContainer = document.getElementById('list-container');
-        const todayPlan = weeklyPlan[dayOfWeek] || [`今天没有安排，自由活动！`];
+        listContainer.innerHTML = ''; // 清空当前列表
+        
+        const todayPlan = weeklyPlan[dayOfWeek] || [`无计划`];
 
         todayPlan.forEach((content, index) => {
-            // 解析内容
+            // 分离标题和Note
             let title = content;
             let note = "";
-            
             if (content.includes("<br>")) {
                 const parts = content.split("<br>");
                 title = parts[0];
                 note = parts[1];
             }
+            // 提取纯动作名用于存储重量Key (去掉 | 后面的组数)
+            const pureActionName = title.split('|')[0].trim();
 
             const div = document.createElement('div');
             div.className = 'workout-item';
             
-            const storageKey = `workout_${dateStr}_${index}`;
-            let isDone = false;
-            try {
-                isDone = localStorage.getItem(storageKey) === 'true';
-            } catch(e) {
-                console.log("Local storage not supported");
-            }
+            // 状态存储Key
+            const statusKey = `workout_${dateStr}_${index}`;
+            // 重量存储Key (注意：这里用动作名做Key，这样下周做同一个动作能读出来)
+            const weightKey = `last_weight_${pureActionName}`;
             
+            const isDone = localStorage.getItem(statusKey) === 'true';
+            const lastWeight = localStorage.getItem(weightKey) || '';
+
             if (isDone) div.classList.add('completed');
 
             div.innerHTML = `
-                <div class="checkbox">${isDone ? '✔' : ''}</div>
-                <div class="text-content">
-                    <span class="action-name">${title}</span>
-                    ${note ? `<span class="action-note">${note}</span>` : ''}
+                <div class="item-header">
+                    <div class="checkbox">${isDone ? '✔' : ''}</div>
+                    <div class="text-content">
+                        <span class="action-name">${title}</span>
+                        ${note ? `<span class="action-note">${note}</span>` : ''}
+                    </div>
+                </div>
+                <div class="weight-input-area">
+                    <input type="number" class="weight-input" placeholder="${lastWeight ? lastWeight : '0'}" value="${lastWeight}">
+                    <span class="weight-label">kg (上次: ${lastWeight ? lastWeight : '-'}kg)</span>
                 </div>
             `;
 
-            div.onclick = () => {
+            // 点击 Header 切换完成状态
+            div.querySelector('.item-header').onclick = () => {
                 const currentlyDone = div.classList.contains('completed');
                 if (currentlyDone) {
                     div.classList.remove('completed');
                     div.querySelector('.checkbox').innerText = '';
-                    try { localStorage.removeItem(storageKey); } catch(e){}
+                    localStorage.removeItem(statusKey);
                 } else {
                     div.classList.add('completed');
                     div.querySelector('.checkbox').innerText = '✔';
-                    try { localStorage.setItem(storageKey, 'true'); } catch(e){}
+                    localStorage.setItem(statusKey, 'true');
                 }
                 updateProgress();
             };
+
+            // 监听重量输入框：输入变化时保存
+            const input = div.querySelector('input');
+            input.oninput = (e) => {
+                localStorage.setItem(weightKey, e.target.value);
+                // 实时更新后面的提示文字
+                div.querySelector('.weight-label').innerText = `kg (已存)`;
+            };
+
             listContainer.appendChild(div);
         });
-
-        function updateProgress() {
-            const total = document.querySelectorAll('.workout-item').length;
-            const done = document.querySelectorAll('.workout-item.completed').length;
-            if(total <= 2) {
-                document.getElementById('progress-text').innerText = "今日休息 / 主动恢复";
-                return;
-            }
-            const percent = Math.round((done / total) * 100);
-            document.getElementById('progress-text').innerText = `完成度: ${done}/${total} (${percent}%)`;
-        }
-        
         updateProgress();
-        
-    } catch (err) {
-        alert("严重错误: " + err.message);
+    }
+
+    function updateProgress() {
+        const total = document.querySelectorAll('.workout-item').length;
+        const done = document.querySelectorAll('.workout-item.completed').length;
+        if(total === 0) return;
+        const percent = Math.round((done / total) * 100);
+        document.getElementById('progress-text').innerText = `完成度: ${done}/${total} (${percent}%)`;
+    }
+
+    // === 编辑功能逻辑 ===
+    function openEditor() {
+        const editor = document.getElementById('json-editor');
+        // 将当前对象格式化为 JSON 字符串显示，缩进4空格方便阅读
+        editor.value = JSON.stringify(weeklyPlan, null, 4);
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function savePlan() {
+        const editor = document.getElementById('json-editor');
+        try {
+            const newPlan = JSON.parse(editor.value);
+            // 1. 更新内存变量
+            weeklyPlan = newPlan;
+            // 2. 存入本地存储
+            localStorage.setItem('my_custom_plan', JSON.stringify(newPlan));
+            // 3. 刷新界面
+            renderList();
+            closeEditor();
+            alert("计划修改成功！");
+        } catch (e) {
+            alert("JSON 格式有误，请检查标点符号是否正确。\n" + e.message);
+        }
+    }
+
+    function closeEditor() {
+        document.getElementById('edit-modal').style.display = 'none';
     }
     </script>
 </body>
