@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>四分化训练Pro</title>
+    <title>四分化训练Pro+</title>
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,7 +23,7 @@
             -webkit-tap-highlight-color: transparent;
         }
         h1 { font-size: 1.6rem; margin-bottom: 5px; color: #1c1c1e; }
-        h2 { font-size: 1rem; color: #8e8e93; font-weight: normal; margin-bottom: 24px; }
+        h2 { font-size: 1rem; color: #8e8e93; font-weight: normal; margin-bottom: 15px; }
         
         .card {
             background: white;
@@ -36,6 +36,49 @@
             margin-bottom: 20px;
         }
 
+        /* === 新增：计时器卡片样式 === */
+        .timer-card {
+            background: #fff;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0,122,255,0.1);
+            padding: 15px 20px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid rgba(0,122,255,0.1);
+        }
+        .timer-stats {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums; /* 等宽数字，防止跳动 */
+            color: #1c1c1e;
+            margin-bottom: 15px;
+        }
+        .timer-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-start { background-color: #34c759; color: white; }
+        .btn-stop { background-color: #ff3b30; color: white; }
+        
+        /* 列表样式 */
         .workout-item {
             display: flex;
             flex-wrap: wrap;
@@ -91,11 +134,7 @@
             text-align: center;
             outline: none;
         }
-        .weight-label {
-            font-size: 0.85rem;
-            color: #8e8e93;
-            margin-left: 8px;
-        }
+        .weight-label { font-size: 0.85rem; color: #8e8e93; margin-left: 8px; }
 
         .btn {
             background: #007aff;
@@ -107,54 +146,32 @@
             margin-top: 20px;
             cursor: pointer;
         }
-        .btn-outline {
-            background: transparent;
-            color: #007aff;
-            border: 1px solid #007aff;
-        }
-        .btn-danger {
-            background: transparent;
-            color: #ff3b30;
-            border: 1px solid #ff3b30;
-            font-size: 0.8rem;
-            padding: 8px 15px;
-        }
+        .btn-outline { background: transparent; color: #007aff; border: 1px solid #007aff; }
+        .btn-danger { background: transparent; color: #ff3b30; border: 1px solid #ff3b30; font-size: 0.8rem; padding: 8px 15px; margin-left: auto; }
 
         #edit-modal {
             display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white;
-            z-index: 100;
-            padding: 20px;
-            box-sizing: border-box;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 100; padding: 20px; box-sizing: border-box;
             flex-direction: column;
         }
         #json-editor {
-            flex: 1;
-            width: 100%;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 14px;
-            margin-bottom: 10px;
-            background: #f9f9f9;
+            flex: 1; width: 100%; border: 1px solid #ccc; border-radius: 10px;
+            padding: 10px; font-family: monospace; font-size: 14px; margin-bottom: 10px; background: #f9f9f9;
         }
-        .editor-hint {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 10px;
-            background: #eee;
-            padding: 10px;
-            border-radius: 8px;
-        }
+        .editor-hint { font-size: 0.85rem; color: #666; margin-bottom: 10px; background: #eee; padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
     <h1 id="day-title">加载中...</h1>
     <h2 id="date-display">...</h2>
+
+    <div class="timer-card">
+        <div class="timer-stats" id="avg-time-display">加载历史数据...</div>
+        <div class="timer-display" id="timer-clock">00:00:00</div>
+        <button class="timer-btn btn-start" id="timer-action-btn" onclick="toggleTimer()">开始计时</button>
+    </div>
 
     <div class="card" id="list-container"></div>
 
@@ -164,52 +181,35 @@
 
     <div id="edit-modal">
         <h3>编辑计划 (JSON模式)</h3>
-        <div class="editor-hint">
-            在这里直接修改文字、组数或添加新动作。<br>
-            注意保持 JSON 格式正确。
-        </div>
+        <div class="editor-hint">JSON 编辑模式：请保持格式正确。</div>
         <textarea id="json-editor"></textarea>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn" onclick="savePlan()">保存并生效</button>
             <button class="btn btn-outline" onclick="closeEditor()">取消</button>
-            <button class="btn btn-danger" onclick="resetToDefault()" style="margin-left:auto;">重置为默认四分化</button>
+            <button class="btn btn-danger" onclick="resetToDefault()">重置为默认四分化</button>
         </div>
     </div>
 
     <script>
-    // 1. 完整的四分化训练计划数据
-    // 使用反引号 (`) 包裹，支持换行和HTML标签
+    // === 1. 核心数据定义 ===
     const defaultPlan = {
-        // 周一: 胸部 + 肩部(侧/前)
         1: [
             `平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心下放，不需要顶峰挤压</span>`,
-            `坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>以左手(弱侧)次数为准，肩胛骨不要锁死，随手臂自然活动</span>`,
-            `双杠臂屈伸(胸肌版) | 3组x力竭 <br> <span class='note'>身体大幅前倾，含胸，腿向前伸或跪姿撅屁股，肘部微张</span>`,
+            `坐姿哑铃推肩 | 3组x8-12次 <br> <span class='note'>以左手(弱侧)次数为准，随手臂自然活动</span>`,
+            `双杠臂屈伸(胸肌版) | 3组x力竭 <br> <span class='note'>身体大幅前倾，含胸，肘部微张</span>`,
             `器械夹胸 | 4组x12次 <br> <span class='note'>顶峰停顿1秒，感受挤压感</span>`,
             `哑铃侧平举 | 5-6组x15-20次 <br> <span class='note'>侧肩是宽度的关键</span>`
         ],
-
-        // 周二: 休息日 (Active Recovery)
-        2: [
-            `休息日 (有氧恢复) <br> <span class='note'>促进血液循环，帮助恢复。可选慢跑或椭圆机 (25-40分钟)</span>`
-        ],
-
-        // 周三: 背部 + 肩部(后束) + 腹肌
+        2: [ `休息日 (有氧恢复) <br> <span class='note'>促进血液循环，帮助恢复 (25-40分钟)</span>` ],
         3: [
-            `硬拉(传统或架上) | 80% 1组x6次 <br> <span class='note'>力量基石，做完一组高质量的大重量即可</span>`,
+            `硬拉 | 80% 1组x6次 <br> <span class='note'>力量基石，高质量大重量</span>`,
             `高位下拉 | 4组x12次`,
             `坐姿器械划船 | 4组x12次`,
             `直臂下压 | 4组x15-20次`,
-            `绳索面拉 | 4组x15-20次 <br> <span class='note'>手肘拉得比肩膀高，拉向额头，不要耸肩</span>`,
-            `悬垂举腿/反向卷腹 | 3组x力竭 <br> <span class='note'>针对下腹部，核心激活状态下做</span>`
+            `绳索面拉 | 4组x15-20次 <br> <span class='note'>手肘比肩高，拉向额头</span>`,
+            `悬垂举腿/反向卷腹 | 3组x力竭 <br> <span class='note'>针对下腹部</span>`
         ],
-
-        // 周四: 休息日
-        4: [
-            `休息日 <br> <span class='note'>多吃蛋白质，好好睡觉</span>`
-        ],
-
-        // 周五: 手臂(二头/三头) + 腹肌 + 有氧
+        4: [ `休息日 <br> <span class='note'>多吃蛋白质，好好睡觉</span>` ],
         5: [
             `EZ杆碎颅者 | 3组x12次`,
             `EZ杆弯举 | 3组x12次`,
@@ -217,46 +217,147 @@
             `牧师凳弯举 | 3组x12次`,
             `绳索下压 | 3组x12次`,
             `上斜哑铃弯举 | 3组x12次`,
-            `绳索伐木/俄罗斯转体 | 3组x15-20次 <br> <span class='note'>针对腹外斜肌</span>`,
-            `有氧训练 | 20-30分钟 <br> <span class='note'>中等强度恒速(LISS)，如坡度快走(坡度10-12,速度4-5)</span>`
+            `绳索伐木 | 3组x15-20次`,
+            `有氧训练 | 20-30分钟 <br> <span class='note'>中等强度恒速(LISS)</span>`
         ],
-
-        // 周六: 休息日
-        6: [
-            `休息日 <br> <span class='note'>准备明天的练腿日</span>`
-        ],
-
-        // 周日: 腿部
+        6: [ `休息日 <br> <span class='note'>准备明天的练腿日</span>` ],
         0: [
             `深蹲 | 80% 3组x6次 <br> <span class='note'>绝对力量训练</span>`,
-            `哑铃原地后撤步蹲 | 3组x10-12次(每腿) <br> <span class='note'>向后撤步，对膝盖更友好</span>`,
-            `哑铃罗马尼亚硬拉(RDL) | 4组x10-12次 <br> <span class='note'>微屈膝锁死，屁股后撅，感受大腿后侧强烈拉伸，腰背挺直</span>`,
+            `哑铃原地后撤步蹲 | 3组x10-12次 <br> <span class='note'>向后撤步，对膝盖更友好</span>`,
+            `哑铃罗马尼亚硬拉 | 4组x10-12次 <br> <span class='note'>微屈膝锁死，屁股后撅</span>`,
             `腿屈伸 | 4组x15-20次`,
             `腿弯举 | 4组x12-20次`,
-            `坐姿外展 | 2组x15-20次 <br> <span class='note'>身体前倾(趴着做)，避免阔筋膜张肌抽筋，孤立臀中肌</span>`
+            `坐姿外展 | 2组x15-20次 <br> <span class='note'>身体前倾，孤立臀中肌</span>`
         ]
     };
 
     let weeklyPlan = defaultPlan;
-    // 尝试读取本地自定义计划
     const storedPlan = localStorage.getItem('my_custom_plan');
-    if (storedPlan) {
-        try {
-            weeklyPlan = JSON.parse(storedPlan);
-        } catch(e) {
-            console.error("计划解析失败，重置为默认");
-        }
-    }
+    if (storedPlan) { try { weeklyPlan = JSON.parse(storedPlan); } catch(e) {} }
 
     const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
     const now = new Date();
     const dayOfWeek = now.getDay(); 
     const dateStr = now.toISOString().split('T')[0]; 
 
+    // 初始化页面
     document.getElementById('day-title').innerText = dayNames[dayOfWeek] + "计划";
     document.getElementById('date-display').innerText = dateStr;
     renderList();
+    initTimer(); // 初始化计时器
 
+    // === 2. 计时器功能模块 (新增) ===
+    let timerInterval = null;
+
+    function initTimer() {
+        // A. 加载并计算平均时间
+        const historyKey = `gym_history_${dayOfWeek}`; // 例如: gym_history_1
+        const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+        
+        const avgDisplay = document.getElementById('avg-time-display');
+        if (history.length === 0) {
+            avgDisplay.innerText = "本周几暂无记录，开始第一次训练吧！";
+        } else {
+            const total = history.reduce((acc, cur) => acc + cur, 0);
+            const avg = Math.round(total / history.length);
+            avgDisplay.innerText = `本周几最近3次平均时长: ${avg} 分钟`;
+        }
+
+        // B. 检查是否有正在进行的计时
+        const startTime = localStorage.getItem('timer_start_timestamp');
+        if (startTime) {
+            // 如果有，恢复计时状态
+            setTimerUIState(true);
+            startTicker(parseInt(startTime));
+        }
+    }
+
+    function toggleTimer() {
+        const btn = document.getElementById('timer-action-btn');
+        const startTime = localStorage.getItem('timer_start_timestamp');
+
+        if (!startTime) {
+            // === 开始计时 ===
+            const nowTs = Date.now();
+            localStorage.setItem('timer_start_timestamp', nowTs);
+            setTimerUIState(true);
+            startTicker(nowTs);
+        } else {
+            // === 结束计时 ===
+            if(!confirm("确定结束本次训练并保存时长吗？")) return;
+            
+            const nowTs = Date.now();
+            const durationMinutes = Math.round((nowTs - parseInt(startTime)) / 1000 / 60);
+            
+            // 1. 保存历史数据
+            saveHistory(durationMinutes);
+            
+            // 2. 清理状态
+            localStorage.removeItem('timer_start_timestamp');
+            clearInterval(timerInterval);
+            
+            // 3. 恢复UI
+            setTimerUIState(false);
+            document.getElementById('timer-clock').innerText = "00:00:00";
+            
+            alert(`辛苦了！本次训练时长 ${durationMinutes} 分钟，已保存。`);
+            // 重新加载平均时间
+            initTimer();
+        }
+    }
+
+    function saveHistory(minutes) {
+        if (minutes < 1) return; // 忽略小于1分钟的误触
+        const historyKey = `gym_history_${dayOfWeek}`;
+        let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+        
+        history.push(minutes);
+        
+        // 只保留最近3次 (FIFO队列)
+        if (history.length > 3) {
+            history.shift(); // 删除第一个（最老的）
+        }
+        
+        localStorage.setItem(historyKey, JSON.stringify(history));
+    }
+
+    function startTicker(startTimestamp) {
+        if(timerInterval) clearInterval(timerInterval);
+        
+        // 立即执行一次
+        updateClock(startTimestamp);
+
+        timerInterval = setInterval(() => {
+            updateClock(startTimestamp);
+        }, 1000);
+    }
+
+    function updateClock(startTimestamp) {
+        const diff = Date.now() - startTimestamp;
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        const f = (n) => n.toString().padStart(2, '0');
+        document.getElementById('timer-clock').innerText = `${f(hours)}:${f(minutes)}:${f(seconds)}`;
+    }
+
+    function setTimerUIState(isRunning) {
+        const btn = document.getElementById('timer-action-btn');
+        const clock = document.getElementById('timer-clock');
+        
+        if (isRunning) {
+            btn.innerText = "结束训练";
+            btn.className = "timer-btn btn-stop";
+            clock.style.color = "#007aff"; // 计时中变蓝
+        } else {
+            btn.innerText = "开始计时";
+            btn.className = "timer-btn btn-start";
+            clock.style.color = "#1c1c1e"; // 停止变黑
+        }
+    }
+
+    // === 3. 列表渲染模块 (保持不变) ===
     function renderList() {
         const listContainer = document.getElementById('list-container');
         listContainer.innerHTML = '';
@@ -312,8 +413,7 @@
                 updateProgress();
             };
 
-            const input = div.querySelector('input');
-            input.oninput = (e) => {
+            div.querySelector('input').oninput = (e) => {
                 localStorage.setItem(weightKey, e.target.value);
                 div.querySelector('.weight-label').innerText = `kg (已存)`;
             };
@@ -326,7 +426,7 @@
     function updateProgress() {
         const total = document.querySelectorAll('.workout-item').length;
         const done = document.querySelectorAll('.workout-item.completed').length;
-        if(total <= 1) { // 如果项目太少（休息日），就不显示进度
+        if(total <= 1) { 
             document.getElementById('progress-text').innerText = "今日目标: 休息/恢复";
             return;
         }
@@ -334,37 +434,31 @@
         document.getElementById('progress-text').innerText = `完成度: ${done}/${total} (${percent}%)`;
     }
 
+    // === 4. 编辑器模块 ===
     function openEditor() {
         const editor = document.getElementById('json-editor');
         editor.value = JSON.stringify(weeklyPlan, null, 4);
         document.getElementById('edit-modal').style.display = 'flex';
     }
-
     function savePlan() {
-        const editor = document.getElementById('json-editor');
         try {
-            const newPlan = JSON.parse(editor.value);
-            weeklyPlan = newPlan;
-            localStorage.setItem('my_custom_plan', JSON.stringify(newPlan));
+            weeklyPlan = JSON.parse(document.getElementById('json-editor').value);
+            localStorage.setItem('my_custom_plan', JSON.stringify(weeklyPlan));
             renderList();
             closeEditor();
             alert("计划修改成功！");
         } catch (e) {
-            alert("JSON 格式有误，请检查: \n1. 所有的文字都要用双引号包裹 \n2. 每一行结束要有逗号 \n3. 错误信息: " + e.message);
+            alert("JSON 格式有误: " + e.message);
         }
     }
-
-    // === 新增：重置功能 ===
     function resetToDefault() {
-        if(confirm("确定要重置吗？这将覆盖你之前的自定义修改，恢复到初始的【四分化】计划。")) {
+        if(confirm("确定重置为默认计划？")) {
             weeklyPlan = defaultPlan;
-            localStorage.removeItem('my_custom_plan'); // 清除本地的自定义存储
+            localStorage.removeItem('my_custom_plan');
             renderList();
             closeEditor();
-            alert("已恢复到标准四分化计划！");
         }
     }
-
     function closeEditor() {
         document.getElementById('edit-modal').style.display = 'none';
     }
