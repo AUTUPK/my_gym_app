@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>四分化训练Pro+</title>
+    <title>四分化训练Pro Max</title>
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -36,7 +36,7 @@
             margin-bottom: 20px;
         }
 
-        /* === 新增：计时器卡片样式 === */
+        /* 计时器卡片样式 */
         .timer-card {
             background: #fff;
             width: 100%;
@@ -61,7 +61,7 @@
         .timer-display {
             font-size: 2.5rem;
             font-weight: 700;
-            font-variant-numeric: tabular-nums; /* 等宽数字，防止跳动 */
+            font-variant-numeric: tabular-nums; 
             color: #1c1c1e;
             margin-bottom: 15px;
         }
@@ -191,7 +191,7 @@
     </div>
 
     <script>
-    // === 1. 核心数据定义 ===
+    // === 核心数据 ===
     const defaultPlan = {
         1: [
             `平板卧推 | 75% 4组x6次 <br> <span class='note'>全程锁死肩胛骨，关注离心下放，不需要顶峰挤压</span>`,
@@ -244,29 +244,30 @@
     document.getElementById('day-title').innerText = dayNames[dayOfWeek] + "计划";
     document.getElementById('date-display').innerText = dateStr;
     renderList();
-    initTimer(); // 初始化计时器
+    initTimer(); 
 
-    // === 2. 计时器功能模块 (新增) ===
+    // === 计时器逻辑 (修复Bug版) ===
     let timerInterval = null;
 
     function initTimer() {
-        // A. 加载并计算平均时间
-        const historyKey = `gym_history_${dayOfWeek}`; // 例如: gym_history_1
+        // A. 加载平均时间
+        const historyKey = `gym_history_${dayOfWeek}`;
         const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
         
         const avgDisplay = document.getElementById('avg-time-display');
+        
+        // 【关键修复】: 使用 dayNames[dayOfWeek] 动态显示周几
         if (history.length === 0) {
-            avgDisplay.innerText = "本周几暂无记录，开始第一次训练吧！";
+            avgDisplay.innerText = `本${dayNames[dayOfWeek]}暂无记录，开始第一次训练吧！`;
         } else {
             const total = history.reduce((acc, cur) => acc + cur, 0);
             const avg = Math.round(total / history.length);
-            avgDisplay.innerText = `本周几最近3次平均时长: ${avg} 分钟`;
+            avgDisplay.innerText = `本${dayNames[dayOfWeek]}最近3次平均时长: ${avg} 分钟`;
         }
 
-        // B. 检查是否有正在进行的计时
+        // B. 恢复计时状态
         const startTime = localStorage.getItem('timer_start_timestamp');
         if (startTime) {
-            // 如果有，恢复计时状态
             setTimerUIState(true);
             startTicker(parseInt(startTime));
         }
@@ -277,59 +278,44 @@
         const startTime = localStorage.getItem('timer_start_timestamp');
 
         if (!startTime) {
-            // === 开始计时 ===
             const nowTs = Date.now();
             localStorage.setItem('timer_start_timestamp', nowTs);
             setTimerUIState(true);
             startTicker(nowTs);
         } else {
-            // === 结束计时 ===
             if(!confirm("确定结束本次训练并保存时长吗？")) return;
             
             const nowTs = Date.now();
             const durationMinutes = Math.round((nowTs - parseInt(startTime)) / 1000 / 60);
             
-            // 1. 保存历史数据
             saveHistory(durationMinutes);
             
-            // 2. 清理状态
             localStorage.removeItem('timer_start_timestamp');
             clearInterval(timerInterval);
             
-            // 3. 恢复UI
             setTimerUIState(false);
             document.getElementById('timer-clock').innerText = "00:00:00";
             
             alert(`辛苦了！本次训练时长 ${durationMinutes} 分钟，已保存。`);
-            // 重新加载平均时间
-            initTimer();
+            initTimer(); // 刷新显示的平均时间
         }
     }
 
     function saveHistory(minutes) {
-        if (minutes < 1) return; // 忽略小于1分钟的误触
+        if (minutes < 1) return;
         const historyKey = `gym_history_${dayOfWeek}`;
         let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
         
         history.push(minutes);
-        
-        // 只保留最近3次 (FIFO队列)
-        if (history.length > 3) {
-            history.shift(); // 删除第一个（最老的）
-        }
+        if (history.length > 3) history.shift();
         
         localStorage.setItem(historyKey, JSON.stringify(history));
     }
 
     function startTicker(startTimestamp) {
         if(timerInterval) clearInterval(timerInterval);
-        
-        // 立即执行一次
         updateClock(startTimestamp);
-
-        timerInterval = setInterval(() => {
-            updateClock(startTimestamp);
-        }, 1000);
+        timerInterval = setInterval(() => { updateClock(startTimestamp); }, 1000);
     }
 
     function updateClock(startTimestamp) {
@@ -337,7 +323,6 @@
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
         const f = (n) => n.toString().padStart(2, '0');
         document.getElementById('timer-clock').innerText = `${f(hours)}:${f(minutes)}:${f(seconds)}`;
     }
@@ -345,19 +330,18 @@
     function setTimerUIState(isRunning) {
         const btn = document.getElementById('timer-action-btn');
         const clock = document.getElementById('timer-clock');
-        
         if (isRunning) {
             btn.innerText = "结束训练";
             btn.className = "timer-btn btn-stop";
-            clock.style.color = "#007aff"; // 计时中变蓝
+            clock.style.color = "#007aff";
         } else {
             btn.innerText = "开始计时";
             btn.className = "timer-btn btn-start";
-            clock.style.color = "#1c1c1e"; // 停止变黑
+            clock.style.color = "#1c1c1e";
         }
     }
 
-    // === 3. 列表渲染模块 (保持不变) ===
+    // === 列表渲染逻辑 ===
     function renderList() {
         const listContainer = document.getElementById('list-container');
         listContainer.innerHTML = '';
@@ -434,7 +418,6 @@
         document.getElementById('progress-text').innerText = `完成度: ${done}/${total} (${percent}%)`;
     }
 
-    // === 4. 编辑器模块 ===
     function openEditor() {
         const editor = document.getElementById('json-editor');
         editor.value = JSON.stringify(weeklyPlan, null, 4);
