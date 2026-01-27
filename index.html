@@ -247,9 +247,16 @@
             subtitle: "背 · 肩后束 · 二头",
             exercises: [
                 { 
+                    name: "绳索直臂下压 (激活)", 
+                    sets: "3组 x 15-20次", 
+                    tips: "🔥 <span class='tag-warn'>前置激活</span> 轻重量。手臂微屈锁死，仅靠腋下发力压向大腿。",
+                    is_warmup: true,
+                    alt: "弹力带直臂下压"
+                },
+                { 
                     name: "高位下拉 / 引体", 
                     sets: "3-4组 x 8-12次", 
-                    tips: "垂直拉动，用手肘去撞击侧腰。",
+                    tips: "空握(钩子手)。下拉爆发，回放3-4秒。用手肘去撞侧腰。",
                     alt: "器械下拉"
                 },
                 { 
@@ -274,6 +281,12 @@
                     name: "锤式弯举", 
                     sets: "2-3组 x 10-12次", 
                     tips: "增加手臂外侧质感 (可选)。"
+                },
+                { 
+                    name: "悬垂举腿 (腹肌)", 
+                    sets: "3组 x 力竭", 
+                    tips: "【可选收尾】 卷起骨盆，针对下腹。",
+                    is_warmup: true
                 }
             ]
         },
@@ -284,8 +297,14 @@
                 { 
                     name: "深蹲 / 哈克深蹲", 
                     sets: "4组 x 6-10次", 
-                    tips: "腿部王牌。注意核心收紧。",
+                    tips: "腿部王牌。注意核心收紧，膝盖对准脚尖。",
                     alt: "倒蹬机 (Leg Press)"
+                },
+                { 
+                    name: "罗马尼亚硬拉 (RDL)", 
+                    sets: "3组 x 8-12次", 
+                    tips: "🔥 <span class='tag-warn'>后链补完</span> 哑铃/杠铃。膝盖微屈固定，屁股后撅，感受大腿后侧拉伸。",
+                    alt: "哑铃RDL"
                 },
                 { 
                     name: "坐姿腿屈伸", 
@@ -301,6 +320,12 @@
                     name: "坐姿髋外展", 
                     sets: "3组 x 15-20次", 
                     tips: "身体前倾，孤立臀中肌。",
+                },
+                { 
+                    name: "绳索/跪姿卷腹 (腹肌)", 
+                    sets: "3组 x 12-15次", 
+                    tips: "【可选收尾】 像虾米一样卷曲，胸口贴大腿。",
+                    is_warmup: true
                 }
             ]
         },
@@ -550,6 +575,15 @@
         if (event.target == modal) {
             modal.style.display = "none";
         }
+    }
+
+    // === PWA 离线服务注册 ===
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('离线服务启动成功: ', reg.scope))
+                .catch(err => console.log('离线服务启动失败: ', err));
+        });
     }
     </script>
 </body>
